@@ -159,9 +159,41 @@ export default function DashboardPage() {
   }
 
   const handleExportReport = () => {
+    const reportData = `Oil Inventory Daily Report - ${new Date().toLocaleDateString("en-IN")}
+
+${dailySummary}
+
+=== DETAILED BREAKDOWN ===
+
+PRODUCT SUMMARY:
+${mockProductSummaries
+  .map((p) => `${p.productName}: ${p.sold} units sold, ₹${p.revenue.toLocaleString("en-IN")} revenue`)
+  .join("\n")}
+
+ROUTE PERFORMANCE:
+${mockRoutePerformances
+  .map(
+    (r) =>
+      `${r.routeName} (${r.vehicleId}): ${r.sold}/${r.dispatched} units, ₹${r.salesAmount.toLocaleString("en-IN")}`,
+  )
+  .join("\n")}
+
+Generated on: ${new Date().toLocaleString("en-IN")}
+`
+
+    const blob = new Blob([reportData], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `daily_report_${new Date().toISOString().split("T")[0]}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
     toast({
-      title: "Export Started",
-      description: "Daily report is being generated...",
+      title: "Export Complete",
+      description: "Daily report has been downloaded successfully",
     })
   }
 
