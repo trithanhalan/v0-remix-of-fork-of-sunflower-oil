@@ -1,21 +1,27 @@
-export default function HomePage() {
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+
+export default function Home() {
+  const router = useRouter()
+
+  useEffect(() => {
+    // Redirect to dashboard immediately
+    router.push("/dashboard")
+  }, [router])
+
   return (
-    <div className="flex-1 p-8">
-      <h1 className="text-3xl font-bold">Oil Inventory Dashboard</h1>
-      <p className="text-muted-foreground mt-2">Welcome to the oil inventory management system.</p>
-      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div className="p-6 border rounded-lg">
-          <h2 className="text-xl font-semibold">Dashboard</h2>
-          <p className="text-sm text-muted-foreground">View key metrics and performance</p>
-        </div>
-        <div className="p-6 border rounded-lg">
-          <h2 className="text-xl font-semibold">Stock Management</h2>
-          <p className="text-sm text-muted-foreground">Track inventory levels</p>
-        </div>
-        <div className="p-6 border rounded-lg">
-          <h2 className="text-xl font-semibold">Sales & Dispatch</h2>
-          <p className="text-sm text-muted-foreground">Manage orders and deliveries</p>
-        </div>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-4">Oil Inventory Dashboard</h1>
+        <p className="text-muted-foreground mb-4">Redirecting to dashboard...</p>
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+        >
+          Go to Dashboard
+        </button>
       </div>
     </div>
   )

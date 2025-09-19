@@ -4,14 +4,19 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, FileText, TrendingUp } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 
 import { WhatsAppPreview } from "@/components/whatsapp-preview"
+import { ProductSummaryTable } from "@/components/product-summary-table"
+import { RouteLiveView } from "@/components/route-live-view"
+import { DashboardCards } from "@/components/dashboard-cards"
+
 import { generateWhatsAppDailySummary, generateWhatsAppPricingUpdate } from "@/lib/calculations"
 import type { DashboardKPIs, ProductSummary, RoutePerformance } from "@/lib/types"
 
-// Mock data for reports
+// Mock data (same as dashboard for consistency)
 const mockKPIs: DashboardKPIs = {
   totalSales: 453800,
   totalCash: 350000,
@@ -104,17 +109,19 @@ const mockRoutePerformances: RoutePerformance[] = [
 
 export default function ReportsPage() {
   const { toast } = useToast()
-  const [selectedDateRange, setSelectedDateRange] = useState("today")
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [reportType, setReportType] = useState<string>("daily")
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const dailySummary = generateWhatsAppDailySummary(
-    new Date().toLocaleDateString("en-IN"),
+    selectedDate.toLocaleDateString("en-IN"),
     mockProductSummaries,
     mockRoutePerformances,
     mockKPIs,
   )
 
   const pricingUpdate = generateWhatsAppPricingUpdate(
-    new Date().toLocaleDateString("en-IN"),
+    selectedDate.toLocaleDateString("en-IN"),
     mockProductSummaries.map((p) => ({
       name: p.productName.split(" ").slice(0, 2).join(" "),
       packLabel: p.productName.split(" ").slice(-2).join(" "),
@@ -122,29 +129,30 @@ export default function ReportsPage() {
     })),
   )
 
-  const handleExportReport = (reportType: string) => {
+  const handleGenerateReport = async () => {
+    setIsGenerating(true)
+    // Simulate report generation
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    setIsGenerating(false)
+    toast({
+      title: "Report Generated",
+      description: `${reportType} report for ${selectedDate.toLocaleDateString("en-IN")} has been generated successfully.`,
+    })
+  }
+
+  const handleExportReport = (format: string) => {
     toast({
       title: "Export Started",
-      description: `${reportType} report is being generated...`,
+      description: `Exporting report in ${format.toUpperCase()} format...`,
     })
+  }
 
-    setTimeout(() => {
-      const reportData = reportType === "Daily Summary" ? dailySummary : pricingUpdate
-      const blob = new Blob([reportData], { type: "text/plain" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `${reportType.toLowerCase().replace(" ", "_")}_${new Date().toISOString().split("T")[0]}.txt`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-
-      toast({
-        title: "Export Complete",
-        description: `${reportType} report has been downloaded successfully`,
-      })
-    }, 1000)
+  const handlePrintReport = () => {
+    window.print()
+    toast({
+      title: "Print Dialog Opened",
+      description: "Report is ready for printing.",
+    })
   }
 
   return (
@@ -152,128 +160,100 @@ export default function ReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Reports</h2>
-          <p className="text-muted-foreground">Generate and export business reports for analysis and sharing</p>
+          <p className="text-muted-foreground">Generate and export comprehensive business reports</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => handleExportReport("Daily Summary")}>
-            <Download className="mr-2 h-4 w-4" />
-            Export Daily Report
+          <Button variant="outline" onClick={handlePrintReport}>
+            Print
+          </Button>
+          <Button onClick={handleGenerateReport} disabled={isGenerating}>
+            {isGenerating ? "Generating..." : "Generate Report"}
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="daily" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="daily">Daily Reports</TabsTrigger>
+      {/* Report Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Report Configuration</CardTitle>
+          <CardDescription>Select date range and report type</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Date:</label>
+              <Button variant="outline" className="w-[240px] justify-start text-left font-normal bg-transparent">
+                {selectedDate.toLocaleDateString("en-IN")}
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Report Type:</label>
+              <Select value={reportType} onValueChange={setReportType}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily Summary</SelectItem>
+                  <SelectItem value="weekly">Weekly Report</SelectItem>
+                  <SelectItem value="monthly">Monthly Report</SelectItem>
+                  <SelectItem value="product">Product Analysis</SelectItem>
+                  <SelectItem value="route">Route Performance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              <Button variant="outline" size="sm" onClick={() => handleExportReport("pdf")}>
+                PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleExportReport("excel")}>
+                Excel
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleExportReport("csv")}>
+                CSV
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="summary" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="routes">Routes</TabsTrigger>
+          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="whatsapp">WhatsApp Messages</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="daily" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Daily Summary
-                </CardTitle>
-                <CardDescription>Complete business overview for today</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Total Sales</p>
-                      <p className="text-2xl font-bold">₹{mockKPIs.totalSales.toLocaleString("en-IN")}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Units Sold</p>
-                      <p className="text-2xl font-bold">{mockProductSummaries.reduce((sum, p) => sum + p.sold, 0)}</p>
-                    </div>
-                  </div>
-                  <Button className="w-full" onClick={() => handleExportReport("Daily Summary")}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Export Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+        <TabsContent value="summary" className="space-y-6">
+          <DashboardCards kpis={mockKPIs} />
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Route Performance
-                </CardTitle>
-                <CardDescription>Sales performance by route</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    {mockRoutePerformances.slice(0, 3).map((route) => (
-                      <div key={route.routeId} className="flex justify-between text-sm">
-                        <span>{route.routeName}</span>
-                        <span className="font-medium">₹{route.salesAmount.toLocaleString("en-IN")}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="w-full bg-transparent"
-                    onClick={() => handleExportReport("Route Performance")}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Export Routes
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {/* Updated icon */}
-                  <FileText className="h-5 w-5" />
-                  Product Analysis
-                </CardTitle>
-                <CardDescription>Top performing products</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    {mockProductSummaries
-                      .sort((a, b) => b.revenue - a.revenue)
-                      .slice(0, 3)
-                      .map((product) => (
-                        <div key={product.productId} className="flex justify-between text-sm">
-                          <span className="truncate">{product.productName.split(" ").slice(0, 2).join(" ")}</span>
-                          <span className="font-medium">₹{product.revenue.toLocaleString("en-IN")}</span>
-                        </div>
-                      ))}
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="w-full bg-transparent"
-                    onClick={() => handleExportReport("Product Analysis")}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Export Products
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Key Performance Indicators</CardTitle>
-                <CardDescription>Today's business metrics</CardDescription>
+                <CardTitle>Performance Metrics</CardTitle>
+                <CardDescription>
+                  Key performance indicators for {selectedDate.toLocaleDateString("en-IN")}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Total Units Sold</p>
+                    <p className="text-2xl font-bold">{mockProductSummaries.reduce((sum, p) => sum + p.sold, 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Active Routes</p>
+                    <p className="text-2xl font-bold">{mockRoutePerformances.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Average Sale/Route</p>
+                    <p className="text-2xl font-bold">
+                      ₹{Math.round(mockKPIs.totalSales / mockRoutePerformances.length).toLocaleString("en-IN")}
+                    </p>
+                  </div>
                   <div>
                     <p className="text-muted-foreground">Collection Rate</p>
                     <p className="text-2xl font-bold">
@@ -285,49 +265,90 @@ export default function ReportsPage() {
                       %
                     </p>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Active Routes</p>
-                    <p className="text-2xl font-bold">{mockRoutePerformances.length}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Avg Sale/Route</p>
-                    <p className="text-2xl font-bold">
-                      ₹{Math.round(mockKPIs.totalSales / mockRoutePerformances.length).toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Stock Variances</p>
-                    <p className="text-2xl font-bold">{mockKPIs.stockDiscrepancyCount}</p>
-                  </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Payment Breakdown</CardTitle>
-                <CardDescription>Collection method distribution</CardDescription>
+                <CardTitle>Report Status</CardTitle>
+                <CardDescription>Current report generation status</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Cash</span>
-                    <span className="font-medium">₹{mockKPIs.totalCash.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Cheque</span>
-                    <span className="font-medium">₹{mockKPIs.totalCheque.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Online</span>
-                    <span className="font-medium">₹{mockKPIs.totalOnlineManual.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2">
-                    <span className="text-sm font-medium">Total Collection</span>
-                    <span className="font-bold">
-                      ₹
-                      {(mockKPIs.totalCash + mockKPIs.totalCheque + mockKPIs.totalOnlineManual).toLocaleString("en-IN")}
-                    </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Daily Summary</span>
+                  <Badge variant="default">Ready</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Product Analysis</span>
+                  <Badge variant="default">Ready</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Route Performance</span>
+                  <Badge variant="default">Ready</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">WhatsApp Messages</span>
+                  <Badge variant="default">Ready</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="products" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Product Performance Report</CardTitle>
+              <CardDescription>Detailed analysis of product sales and inventory</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProductSummaryTable products={mockProductSummaries} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="routes" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Route Performance Report</CardTitle>
+              <CardDescription>Comprehensive route and vehicle performance analysis</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RouteLiveView routes={mockRoutePerformances} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="whatsapp" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <WhatsAppPreview dailySummary={dailySummary} pricingUpdate={pricingUpdate} />
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Message Templates</CardTitle>
+                <CardDescription>Pre-configured WhatsApp message templates</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Available Templates:</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 border rounded">
+                      <span className="text-sm">Daily Business Summary</span>
+                      <Badge variant="outline">Active</Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-2 border rounded">
+                      <span className="text-sm">Pricing Update</span>
+                      <Badge variant="outline">Active</Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-2 border rounded">
+                      <span className="text-sm">Stock Alert</span>
+                      <Badge variant="secondary">Draft</Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-2 border rounded">
+                      <span className="text-sm">Route Performance</span>
+                      <Badge variant="secondary">Draft</Badge>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -335,49 +356,55 @@ export default function ReportsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="whatsapp" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>WhatsApp Business Messages</CardTitle>
-                <CardDescription>Ready-to-share business summaries</CardDescription>
+                <CardTitle>Trend Analysis</CardTitle>
+                <CardDescription>Sales and performance trends over time</CardDescription>
               </CardHeader>
               <CardContent>
-                <WhatsAppPreview dailySummary={dailySummary} pricingUpdate={pricingUpdate} />
+                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <div className="h-12 w-12 mx-auto mb-2 bg-muted rounded"></div>
+                    <p>Chart visualization would appear here</p>
+                    <p className="text-sm">Integration with charting library needed</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Export Options</CardTitle>
-                <CardDescription>Download reports in different formats</CardDescription>
+                <CardTitle>Comparative Analysis</CardTitle>
+                <CardDescription>Period-over-period comparison</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <Button
-                    className="w-full justify-start bg-transparent"
-                    variant="outline"
-                    onClick={() => handleExportReport("Daily Summary")}
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Daily Summary (TXT)
-                  </Button>
-                  <Button
-                    className="w-full justify-start bg-transparent"
-                    variant="outline"
-                    onClick={() => handleExportReport("Pricing Update")}
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Pricing Update (TXT)
-                  </Button>
-                  <Button
-                    className="w-full justify-start bg-transparent"
-                    variant="outline"
-                    onClick={() => handleExportReport("Complete Report")}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Complete Report (PDF)
-                  </Button>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Sales Growth</span>
+                    <Badge variant="default" className="bg-green-100 text-green-800">
+                      +12.5%
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Route Efficiency</span>
+                    <Badge variant="default" className="bg-blue-100 text-blue-800">
+                      +8.3%
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Product Variance</span>
+                    <Badge variant="destructive" className="bg-red-100 text-red-800">
+                      -2.1%
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Collection Rate</span>
+                    <Badge variant="default" className="bg-green-100 text-green-800">
+                      +5.7%
+                    </Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>

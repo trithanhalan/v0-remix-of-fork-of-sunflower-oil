@@ -159,42 +159,66 @@ export default function DashboardPage() {
   }
 
   const handleExportReport = () => {
-    const reportData = `Oil Inventory Daily Report - ${new Date().toLocaleDateString("en-IN")}
+    const reportData = {
+      date: new Date().toLocaleDateString("en-IN"),
+      kpis: mockKPIs,
+      products: mockProductSummaries,
+      routes: mockRoutePerformances,
+      summary: dailySummary,
+    }
 
-${dailySummary}
+    // Generate CSV content
+    const csvContent = generateCSVReport(reportData)
 
-=== DETAILED BREAKDOWN ===
-
-PRODUCT SUMMARY:
-${mockProductSummaries
-  .map((p) => `${p.productName}: ${p.sold} units sold, ₹${p.revenue.toLocaleString("en-IN")} revenue`)
-  .join("\n")}
-
-ROUTE PERFORMANCE:
-${mockRoutePerformances
-  .map(
-    (r) =>
-      `${r.routeName} (${r.vehicleId}): ${r.sold}/${r.dispatched} units, ₹${r.salesAmount.toLocaleString("en-IN")}`,
-  )
-  .join("\n")}
-
-Generated on: ${new Date().toLocaleString("en-IN")}
-`
-
-    const blob = new Blob([reportData], { type: "text/plain" })
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `daily_report_${new Date().toISOString().split("T")[0]}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    link.setAttribute("href", url)
+    link.setAttribute("download", `oil-inventory-report-${new Date().toISOString().split("T")[0]}.csv`)
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
 
     toast({
-      title: "Export Complete",
+      title: "Export Completed",
       description: "Daily report has been downloaded successfully",
     })
+  }
+
+  const generateCSVReport = (data: any) => {
+    let csv = "Oil Inventory Daily Report\n"
+    csv += `Date: ${data.date}\n\n`
+
+    // KPIs Section
+    csv += "KEY PERFORMANCE INDICATORS\n"
+    csv += "Metric,Value\n"
+    csv += `Total Sales,₹${data.kpis.totalSales.toLocaleString("en-IN")}\n`
+    csv += `Total Cash,₹${data.kpis.totalCash.toLocaleString("en-IN")}\n`
+    csv += `Total Cheque,₹${data.kpis.totalCheque.toLocaleString("en-IN")}\n`
+    csv += `Total Online,₹${data.kpis.totalOnlineManual.toLocaleString("en-IN")}\n`
+    csv += `Total Discounts,₹${data.kpis.totalDiscounts.toLocaleString("en-IN")}\n`
+    csv += `Net Cash,₹${data.kpis.netCash.toLocaleString("en-IN")}\n`
+    csv += `Cash Over/Short,₹${data.kpis.cashOverShort}\n\n`
+
+    // Products Section
+    csv += "PRODUCT SUMMARY\n"
+    csv +=
+      "Product,Opening,Receipts,Dispatched,Returned,Sold,Closing Expected,Closing Actual,Variance,Unit Price,Revenue\n"
+    data.products.forEach((product: ProductSummary) => {
+      csv += `${product.productName},${product.opening},${product.receipts},${product.dispatched},${product.returned},${product.sold},${product.closingExpected},${product.closingActual},${product.variance},₹${product.unitPrice},₹${product.revenue}\n`
+    })
+    csv += "\n"
+
+    // Routes Section
+    csv += "ROUTE PERFORMANCE\n"
+    csv += "Route,Vehicle,Dispatched,Sold,On Truck,Returns,Sales Amount\n"
+    data.routes.forEach((route: RoutePerformance) => {
+      csv += `${route.routeName},${route.vehicleId},${route.dispatched},${route.sold},${route.onTruckRemaining},${route.returns},₹${route.salesAmount}\n`
+    })
+
+    return csv
   }
 
   return (
