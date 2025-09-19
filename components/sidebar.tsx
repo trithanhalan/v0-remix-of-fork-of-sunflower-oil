@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Clipboard, Droplet, Home, Menu, Package, Truck, X } from "lucide-react"
+import { Clipboard, Droplet, Home, Menu, Package, Truck, X, DollarSign, ShoppingCart, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
@@ -27,10 +27,28 @@ const routes = [
     color: "text-pink-700",
   },
   {
+    label: "Sales POS",
+    icon: ShoppingCart,
+    href: "/sales",
+    color: "text-green-600",
+  },
+  {
     label: "Price Master",
     icon: Package,
     href: "/price-master",
     color: "text-orange-500",
+  },
+  {
+    label: "Accounts",
+    icon: DollarSign,
+    href: "/accounts",
+    color: "text-emerald-600",
+  },
+  {
+    label: "Reports",
+    icon: FileText,
+    href: "/reports",
+    color: "text-blue-600",
   },
 ]
 
@@ -48,7 +66,7 @@ export default function Sidebar() {
       <div className="flex items-center justify-between p-4">
         <div className={cn("flex items-center gap-2 transition-opacity", isCollapsed ? "opacity-0" : "opacity-100")}>
           <Droplet className="h-8 w-8 text-primary" />
-          <span className="font-bold">Oil Inventory</span>
+          <span className="font-bold">Oil Dashboard</span>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setIsCollapsed(!isCollapsed)} className="h-8 w-8">
           {isCollapsed ? <Menu /> : <X className="h-4 w-4" />}
